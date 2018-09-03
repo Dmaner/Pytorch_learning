@@ -70,7 +70,7 @@ class UNet(nn.Module):
         self.up2 = Up_sample(512, 128)
         self.up3 = Up_sample(256, 64)
         self.up4 = Up_sample(128, 64)
-        self.outc = nn.Conv2d(64, n_classes)
+        self.outc = nn.Conv2d(64, n_classes, 1)
 
     def forward(self, x):
         x1 = self.inc(x)
