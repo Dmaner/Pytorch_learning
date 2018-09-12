@@ -2,49 +2,70 @@ import torch
 import numpy as np
 from torchvision import transforms
 from torch.utils.data import Dataset
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader
+from torch import nn
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-BATCH_SIZE = 50
-LR = 0.005
+trainpath = 'E:/my_python/dataset/FASHIONMNIST/traindata'
+testpath = 'E:/my_python/dataset/FASHIONMNIST/testdata'
+EPOCH = 10
+BATCH_SIZE = 32
+LR = 0.01
+embedding_dim = 28
+squence_dim = 28
+HIDDEN_DIM = 10
 NUM_CLASS = 10
-IMAGE_SIZE = 28
-CHANNEL = 1
-TRAIN_DATA_FILE_CSV = 'data/fashion_mnist/fashion-mnist_train.csv'
-TEST_FILE_CSV = 'data/fashion_mnist/fashion-mnist_test.csv'
+N_LSTM_LATER = 2
+# get data
+traindata = ImageFolder(root=trainpath,
+                        transform=transforms.ToTensor())
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+traindata_loader = DataLoader(
+    traindata,
+    batch_size=32,
+    shuffle=True,
+)
 
-CLASS_CLOTHING = {0:'T-shirt/top',
-                  1:'Trouser',
-                  2:'Pullover',
-                  3:'Dress',
-                  4:'Coat',
-                  5:'Sandal',
-                  6:'Shirt',
-                  7:'Sneaker',
-                  8:'Bag',
-                  9:'Ankle boot'}
+class RNN(nn.Module):
+    def __init__(self, embedding_dim, hidden_dim, n_class, n_layers):
+        super(RNN, self).__init__()
+        self.hidden_d = hidden_dim
+        self.layer_n = n_layers
+        self.lstm  = nn.LSTM(embedding_dim, hidden_dim)# for img embeds == img_size
+        self.linear = nn.Linear(hidden_dim, n_class)
 
-class MyDataset(Dataset):
-    '''
-    Build your own dataset
-    '''
-    def __init__(self, Data_csv_file, transform = None):
-        self.fashion_mnist = list(pd.read_csv(Data_csv_file).values)
-        self.transform = transform
-        label, img = [],[]
-        for one_line in self.fashion_mnist:
-            label.append(one_line[0])
-            img.append(one_line[1:])
-        self.label = np.asarray(label)
-        self.img = np.asarray(img).reshape(-1, IMAGE_SIZE, IMAGE_SIZE, CHANNEL).astype('float32')
+    def weight_init(self, bs):
+        h0 = torch.zeros(self.layer_n, bs, self.hidden_d).to(device)
+        c0 = torch.zeros(self.layer_n, bs, self.hidden_d).to(device)
 
-    def __getitem__(self, item):
-        label, img = self.label[item], self.img[item]
-        if self.transform is not None:
-            img = self.transform(img)
+        return h0, c0
 
-        return label, img
+    def forward(self, x):
+        self.batch_size = x.size(0)
+        weight =self.weight_init(self.batch_size)
+        output, _ = self.lstm(x, weight)
+        output = self.linear(output[:,-1,:])
 
-    def __len__(self):
-        return len(self.label)
+        return output
+
+model = RNN(embedding_dim, HIDDEN_DIM, NUM_CLASS, N_LSTM_LATER).to(device)
+
+criterion = nn.CrossEntropyLoss()
+optim = torch.optim.SGD(model.parameters(), lr= LR)
+
+for epoch in range(EPOCH):
+    for image, label in traindata_loader:
+        image = torch.from_numpy(np.array(image))
+        image = image.reshape(-1, squence_dim, embedding_dim).to(device)
+        label = label.to(device)
+
+        output = model(image)
+        loss = criterion(output, label)
+
+        optim.zero_grad()
+        loss.backward()
+        optim.step()
+
+        if epoch%1 == 0:
+            print('{}/{} Loss:{:.4f}'.format(epoch, EPOCH, loss.item()))
