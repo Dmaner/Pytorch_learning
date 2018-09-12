@@ -18,21 +18,30 @@ HIDDEN_DIM = 10
 NUM_CLASS = 10
 N_LSTM_LATER = 2
 # get data
+
+def RBG2GRAY(image):
+    image = image.convert('L')
+    return image
+
 traindata = ImageFolder(root=trainpath,
-                        transform=transforms.ToTensor())
+                        transform=transforms.Compose([
+                            RBG2GRAY,
+                            transforms.ToTensor()
+                        ]))
 
 traindata_loader = DataLoader(
     traindata,
-    batch_size=32,
+    batch_size=BATCH_SIZE,
     shuffle=True,
 )
+
 
 class RNN(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, n_class, n_layers):
         super(RNN, self).__init__()
         self.hidden_d = hidden_dim
         self.layer_n = n_layers
-        self.lstm  = nn.LSTM(embedding_dim, hidden_dim)# for img embeds == img_size
+        self.lstm  = nn.LSTM(embedding_dim, hidden_dim, n_layers, batch_first=True)# for img embeds == img_size
         self.linear = nn.Linear(hidden_dim, n_class)
 
     def weight_init(self, bs):
