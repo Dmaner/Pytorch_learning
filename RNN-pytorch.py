@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 from torchvision import transforms
-from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 from torch import nn
@@ -10,11 +9,11 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 trainpath = 'E:/my_python/dataset/FASHIONMNIST/traindata'
 testpath = 'E:/my_python/dataset/FASHIONMNIST/testdata'
 EPOCH = 10
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 LR = 0.01
 embedding_dim = 28
 squence_dim = 28
-HIDDEN_DIM = 10
+HIDDEN_DIM = 100
 NUM_CLASS = 10
 N_LSTM_LATER = 2
 # get data
@@ -26,7 +25,8 @@ def RBG2GRAY(image):
 traindata = ImageFolder(root=trainpath,
                         transform=transforms.Compose([
                             RBG2GRAY,
-                            transforms.ToTensor()
+                            transforms.ToTensor(),
+                            transforms.Normalize([0.5],[0.5])
                         ]))
 
 traindata_loader = DataLoader(
@@ -61,7 +61,7 @@ class RNN(nn.Module):
 model = RNN(embedding_dim, HIDDEN_DIM, NUM_CLASS, N_LSTM_LATER).to(device)
 
 criterion = nn.CrossEntropyLoss()
-optim = torch.optim.SGD(model.parameters(), lr= LR)
+optim = torch.optim.Adam(model.parameters(), lr= LR)
 
 for epoch in range(EPOCH):
     for image, label in traindata_loader:
