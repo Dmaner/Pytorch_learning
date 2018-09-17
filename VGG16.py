@@ -58,8 +58,11 @@ def make_layers(cfg, bn=False):
             in_channels = v
 
     return layers
+
+# Test
 img = Image.open('E:/my_python/Test/bee_black.png')
 print(np.array(img).shape)
+
 transform = transforms.Compose([
     transforms.Resize((224,224)),
     transforms.ToTensor()
@@ -68,4 +71,4 @@ Conv_layers = make_layers(Vgg16_cfg)
 model = Vgg16(Conv_layers)
 other_model = models.vgg16()
 output = model(transform(img).unsqueeze(0))
-print(output.shape)
+print(output.shape)# torch.Size([1,1000])
