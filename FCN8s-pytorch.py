@@ -132,4 +132,5 @@ class FCN8s(nn.Module):
 a = torch.randn(1, 3, 224, 224)
 model = FCN8s()
 print(model(a).shape)
+# torch.Size(1,21,224,224)
 
